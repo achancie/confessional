@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confessionals</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #faf9f7;
+      --text: #1a1a1a;
+      --muted: #888;
+      --border: #e0ddd8;
+      --accent: #2d2d2d;
+      --card-bg: #ffffff;
+      --font-serif: 'Georgia', 'Times New Roman', serif;
+      --font-sans: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 56px;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-family: var(--font-serif);
+      font-size: 1.1rem;
+      letter-spacing: 0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--text);
+    }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Feed ── */
+    #feed-view {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 6rem;
+    }
+
+    .feed-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .feed-header h1 {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: normal;
+      margin-bottom: 0.5rem;
+    }
+
+    .feed-header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .poem-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 2rem 2rem 1.5rem;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .poem-title {
+      font-family: var(--font-serif);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .poem-body {
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      line-height: 1.9;
+      white-space: pre-wrap;
+      color: var(--text);
+    }
+
+    .poem-meta {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .like-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      font-family: var(--font-sans);
+      letter-spacing: 0.04em;
+    }
+
+    .like-btn:hover {
+      border-color: #c0392b;
+      color: #c0392b;
+    }
+
+    .like-btn.liked {
+      border-color: #c0392b;
+      color: #c0392b;
+    }
+
+    .like-btn .heart {
+      font-size: 0.85rem;
+      transition: transform 0.15s;
+    }
+
+    .like-btn.liked .heart {
+      animation: heartPop 0.25s ease;
+    }
+
+    @keyframes heartPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+
+    /* ── Comment toggle btn ── */
+    .comment-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      font-family: var(--font-sans);
+      letter-spacing: 0.04em;
+    }
+
+    .comment-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .meta-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    /* ── Comments panel ── */
+    .comments-panel {
+      display: none;
+      border-top: 1px solid var(--border);
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+    }
+
+    .comments-panel.open {
+      display: block;
+    }
+
+    .comment-list {
+      margin-bottom: 1rem;
+    }
+
+    .comment-item {
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--text);
+      animation: fadeUp 0.25s ease both;
+    }
+
+    .comment-item:last-child {
+      border-bottom: none;
+    }
+
+    .comment-date {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+      letter-spacing: 0.03em;
+    }
+
+    .no-comments {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 1rem;
+    }
+
+    .comment-form {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+
+    .comment-input {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0.5rem 0.75rem;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      resize: none;
+      min-height: 38px;
+      max-height: 120px;
+      line-height: 1.5;
+      transition: border-color 0.2s;
+    }
+
+    .comment-input:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-comment {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 2px;
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+      font-family: var(--font-sans);
+    }
+
+    .btn-comment:hover { opacity: 0.8; }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 0;
+      color: var(--muted);
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 1.05rem;
+    }
+
+    /* ── Submit view ── */
+    #submit-view {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 6rem;
+    }
+
+    .submit-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .submit-header h1 {
+      font-family: var(--font-serif);
+      font-size: 1.75rem;
+      font-weight: normal;
+      margin-bottom: 0.5rem;
+    }
+
+    .submit-header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      background: white;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      border-color: var(--accent);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 200px;
+      line-height: 1.8;
+    }
+
+    .char-count {
+      text-align: right;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    .form-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border-left: 2px solid var(--border);
+    }
+
+    .btn-submit {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.85rem 2.5rem;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: opacity 0.2s;
+    }
+
+    .btn-submit:hover { opacity: 0.8; }
+    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--accent);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 2px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── About view ── */
+    #about-view {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 6rem;
+    }
+
+    #about-view h1 {
+      font-family: var(--font-serif);
+      font-size: 1.75rem;
+      font-weight: normal;
+      margin-bottom: 1.5rem;
+    }
+
+    #about-view p {
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: #444;
+      margin-bottom: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" onclick="showView('feed')">confessionals</a>
+    <ul class="nav-links">
+      <li><a onclick="showView('feed')" id="nav-feed" class="active">Read</a></li>
+      <li><a onclick="showView('saved')" id="nav-saved">Saved</a></li>
+      <li><a onclick="showView('submit')" id="nav-submit">Submit</a></li>
+      <li><a onclick="showView('about')" id="nav-about">About</a></li>
+    </ul>
+  </nav>
+
+  <!-- Feed -->
+  <div id="feed-view" class="view active">
+    <div class="feed-header">
+      <h1>confessionals</h1>
+      <p>words left by strangers.</p>
+    </div>
+    <div id="poem-list"></div>
+  </div>
+
+  <!-- Saved -->
+  <div id="saved-view" class="view">
+    <div class="feed-header">
+      <h1>saved poems</h1>
+      <p>the ones that stayed with you.</p>
+    </div>
+    <div id="saved-list"></div>
+  </div>
+
+  <!-- Submit -->
+  <div id="submit-view" class="view">
+    <div class="submit-header">
+      <h1>Leave a poem</h1>
+      <p>Your submission is completely anonymous. No account required.</p>
+    </div>
+
+    <div class="form-note">
+      Poems go into a moderation queue before appearing publicly. Please don't include any identifying information if you'd like to stay anonymous.
+    </div>
+
+    <form id="poem-form">
+      <div class="form-group">
+        <label for="poem-title">Title <span style="font-size:0.7rem">(optional)</span></label>
+        <input type="text" id="poem-title" placeholder="Untitled" maxlength="100" />
+      </div>
+
+      <div class="form-group">
+        <label for="poem-body">Your poem *</label>
+        <textarea id="poem-body" placeholder="Write your poem here…" maxlength="2000" required></textarea>
+        <div class="char-count"><span id="char-num">0</span> / 2000</div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submit-btn">Submit poem</button>
+    </form>
+  </div>
+
+  <!-- About -->
+  <div id="about-view" class="view">
+    <h1>About</h1>
+    <p>This is a space for anonymous poetry. Anyone can leave a poem. No account, no name, no trace — just words.</p>
+    <p>Submissions are reviewed before appearing in the feed. Poems that contain personal information, hate speech, or harmful content will not be published.</p>
+    <p>Inspired by projects that believe writing is most honest when it's free from identity.</p>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  // ── Sample seed poems (shown on first load) ──
+  const SEED_POEMS = [
+    {
+      id: 's1',
+      title: 'Tidal',
+      body: `I have been leaving
+for so long
+I forgot what staying
+feels like.
+
+The door is still open.
+I am still
+on the threshold.`,
+      date: '2026-05-02',
+      likes: 14
+    },
+    {
+      id: 's2',
+      title: '',
+      body: `My mother's hands
+smell like dish soap and rosemary.
+I called her last Tuesday
+just to hear
+the water running.`,
+      date: '2026-05-14',
+      likes: 31
+    },
+    {
+      id: 's3',
+      title: 'After the funeral',
+      body: `Everyone kept saying
+he would have wanted us to laugh.
+
+He would have wanted to be here.`,
+      date: '2026-05-28',
+      likes: 47
+    },
+    {
+      id: 's4',
+      title: '',
+      body: `you kissed me like a question
+i've been answering
+ever since`,
+      date: '2026-06-01',
+      likes: 22
+    },
+  ];
+
+  // ── Storage helpers ──
+  function getPoems() {
+    try {
+      const stored = sessionStorage.getItem('poems');
+      return stored ? JSON.parse(stored) : [...SEED_POEMS];
+    } catch { return [...SEED_POEMS]; }
+  }
+
+  function savePoems(poems) {
+    try { sessionStorage.setItem('poems', JSON.stringify(poems)); } catch {}
+  }
+
+  function getLiked() {
+    try {
+      const stored = sessionStorage.getItem('liked');
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  }
+
+  function saveLiked(liked) {
+    try { sessionStorage.setItem('liked', JSON.stringify(liked)); } catch {}
+  }
+
+  // ── Seed comments ──
+  const SEED_COMMENTS = {
+    's1': [
+      { text: 'this is the most honest thing i\'ve read in months', date: '2026-05-04' },
+      { text: 'the threshold. god.', date: '2026-05-09' },
+    ],
+    's2': [
+      { text: 'called my mum after reading this', date: '2026-05-15' },
+    ],
+    's3': [
+      { text: 'i felt this in my chest', date: '2026-05-29' },
+      { text: 'the last two lines hit so hard', date: '2026-06-01' },
+      { text: 'thank you for writing this', date: '2026-06-03' },
+    ],
+    's4': [],
+  };
+
+  function getComments() {
+    try {
+      const stored = sessionStorage.getItem('comments');
+      return stored ? JSON.parse(stored) : { ...SEED_COMMENTS };
+    } catch { return { ...SEED_COMMENTS }; }
+  }
+
+  function saveComments(comments) {
+    try { sessionStorage.setItem('comments', JSON.stringify(comments)); } catch {}
+  }
+
+  // ── Like a poem ──
+  function toggleLike(id, fromSaved = false) {
+    const poems = getPoems();
+    const liked = getLiked();
+    const poem = poems.find(p => p.id === id);
+    if (!poem) return;
+
+    if (liked[id]) {
+      poem.likes = Math.max(0, (poem.likes || 0) - 1);
+      delete liked[id];
+    } else {
+      poem.likes = (poem.likes || 0) + 1;
+      liked[id] = true;
+    }
+
+    savePoems(poems);
+    saveLiked(liked);
+
+    const isLiked = !!liked[id];
+
+    // Update button in feed view
+    const btn = document.querySelector(`#feed-view .like-btn[data-id="${id}"]`);
+    if (btn) {
+      btn.classList.toggle('liked', isLiked);
+      btn.querySelector('.heart').textContent = isLiked ? '♥' : '♡';
+      btn.querySelector('.like-count').textContent = poem.likes || 0;
+      btn.querySelector('.heart').style.animation = 'none';
+      btn.querySelector('.heart').offsetHeight;
+      btn.querySelector('.heart').style.animation = '';
+    }
+
+    // If unliking from the saved view, remove the card from saved list
+    if (fromSaved && !isLiked) {
+      const card = document.querySelector(`#saved-view .like-btn[data-id="${id}"]`)?.closest('.poem-card');
+      if (card) {
+        card.style.transition = 'opacity 0.3s';
+        card.style.opacity = '0';
+        setTimeout(() => {
+          card.remove();
+          const list = document.getElementById('saved-list');
+          if (!list.querySelector('.poem-card')) {
+            list.innerHTML = '<p class="empty-state">No saved poems yet. Like a poem to keep it here.</p>';
+          }
+        }, 300);
+      }
+    }
+  }
+
+  // ── Render feed ──
+  function renderFeed() {
+    const poems = getPoems();
+    const liked = getLiked();
+    const allComments = getComments();
+    const list = document.getElementById('poem-list');
+    if (poems.length === 0) {
+      list.innerHTML = '<p class="empty-state">No poems yet. Be the first to leave one.</p>';
+      return;
+    }
+    list.innerHTML = poems.map((p, i) => {
+      const isLiked = !!liked[p.id];
+      const likeCount = p.likes || 0;
+      const comments = allComments[p.id] || [];
+      const commentCount = comments.length;
+      const commentsHtml = comments.length > 0
+        ? comments.map(c => `
+            <div class="comment-item">
+              <div>${escHtml(c.text)}</div>
+              <div class="comment-date">${formatDate(c.date)}</div>
+            </div>`).join('')
+        : `<p class="no-comments">No comments yet. Be the first.</p>`;
+
+      return `
+      <article class="poem-card" style="animation-delay:${i * 0.06}s">
+        ${p.title ? `<div class="poem-title">${escHtml(p.title)}</div>` : ''}
+        <div class="poem-body">${escHtml(p.body)}</div>
+        <div class="poem-meta">
+          <span>${formatDate(p.date)}</span>
+          <div class="meta-actions">
+            <button class="comment-btn" onclick="toggleComments('${p.id}')">
+              &#9656; <span class="comment-count">${commentCount} comment${commentCount !== 1 ? 's' : ''}</span>
+            </button>
+            <button class="like-btn ${isLiked ? 'liked' : ''}" data-id="${p.id}" onclick="toggleLike('${p.id}')">
+              <span class="heart">${isLiked ? '♥' : '♡'}</span>
+              <span class="like-count">${likeCount}</span>
+            </button>
+          </div>
+        </div>
+        <div class="comments-panel" id="comments-${p.id}">
+          <div class="comment-list" id="comment-list-${p.id}">${commentsHtml}</div>
+          <div class="comment-form">
+            <textarea class="comment-input" id="comment-input-${p.id}" placeholder="Leave a response…" rows="1"
+              oninput="autoResize(this)" onkeydown="commentKeydown(event, '${p.id}')"></textarea>
+            <button class="btn-comment" onclick="submitComment('${p.id}')">Post</button>
+          </div>
+        </div>
+      </article>
+    `}).join('');
+  }
+
+  // ── Toggle comments panel ──
+  function toggleComments(id) {
+    const panel = document.getElementById('comments-' + id);
+    const btn = panel.previousElementSibling.querySelector('.comment-btn');
+    const isOpen = panel.classList.toggle('open');
+    btn.querySelector('span:first-child').innerHTML = isOpen ? '&#9662;' : '&#9656;';
+    if (isOpen) {
+      document.getElementById('comment-input-' + id).focus();
+    }
+  }
+
+  // ── Auto-resize textarea ──
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  // ── Submit on Ctrl/Cmd+Enter ──
+  function commentKeydown(e, id) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      submitComment(id);
+    }
+  }
+
+  // ── Submit a comment ──
+  function submitComment(id) {
+    const input = document.getElementById('comment-input-' + id);
+    const text = input.value.trim();
+    if (!text) return;
+
+    const allComments = getComments();
+    if (!allComments[id]) allComments[id] = [];
+    const comment = { text, date: new Date().toISOString().slice(0, 10) };
+    allComments[id].push(comment);
+    saveComments(allComments);
+
+    // Update comment list in place
+    const listEl = document.getElementById('comment-list-' + id);
+    // Remove "no comments" placeholder if present
+    const placeholder = listEl.querySelector('.no-comments');
+    if (placeholder) placeholder.remove();
+
+    const div = document.createElement('div');
+    div.className = 'comment-item';
+    div.innerHTML = `<div>${escHtml(text)}</div><div class="comment-date">${formatDate(comment.date)}</div>`;
+    listEl.appendChild(div);
+
+    // Update count in button
+    const count = allComments[id].length;
+    const btn = document.querySelector(`#comments-${id}`).previousElementSibling.querySelector('.comment-count');
+    if (btn) btn.textContent = `${count} comment${count !== 1 ? 's' : ''}`;
+
+    // Reset input
+    input.value = '';
+    input.style.height = 'auto';
+    input.focus();
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function formatDate(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  // ── Render saved (liked) poems ──
+  function renderSaved() {
+    const poems = getPoems();
+    const liked = getLiked();
+    const allComments = getComments();
+    const saved = poems.filter(p => !!liked[p.id]);
+    const list = document.getElementById('saved-list');
+
+    if (saved.length === 0) {
+      list.innerHTML = '<p class="empty-state">No saved poems yet. Like a poem to keep it here.</p>';
+      return;
+    }
+
+    list.innerHTML = saved.map((p, i) => {
+      const likeCount = p.likes || 0;
+      const comments = allComments[p.id] || [];
+      const commentCount = comments.length;
+      return `
+      <article class="poem-card" style="animation-delay:${i * 0.06}s">
+        ${p.title ? `<div class="poem-title">${escHtml(p.title)}</div>` : ''}
+        <div class="poem-body">${escHtml(p.body)}</div>
+        <div class="poem-meta">
+          <span>${formatDate(p.date)}</span>
+          <div class="meta-actions">
+            <button class="comment-btn" onclick="toggleCommentsSaved('${p.id}')">
+              &#9656; <span class="comment-count-s-${p.id}">${commentCount} comment${commentCount !== 1 ? 's' : ''}</span>
+            </button>
+            <button class="like-btn liked" data-id="${p.id}" onclick="toggleLike('${p.id}', true)">
+              <span class="heart">♥</span>
+              <span class="like-count">${likeCount}</span>
+            </button>
+          </div>
+        </div>
+        <div class="comments-panel" id="saved-comments-${p.id}">
+          <div class="comment-list" id="saved-comment-list-${p.id}">
+            ${comments.length > 0
+              ? comments.map(c => `<div class="comment-item"><div>${escHtml(c.text)}</div><div class="comment-date">${formatDate(c.date)}</div></div>`).join('')
+              : '<p class="no-comments">No comments yet.</p>'}
+          </div>
+          <div class="comment-form">
+            <textarea class="comment-input" id="saved-comment-input-${p.id}" placeholder="Leave a response…" rows="1"
+              oninput="autoResize(this)" onkeydown="commentKeydownSaved(event, '${p.id}')"></textarea>
+            <button class="btn-comment" onclick="submitCommentSaved('${p.id}')">Post</button>
+          </div>
+        </div>
+      </article>
+    `}).join('');
+  }
+
+  function toggleCommentsSaved(id) {
+    const panel = document.getElementById('saved-comments-' + id);
+    const btn = panel.previousElementSibling.querySelector('.comment-btn');
+    const isOpen = panel.classList.toggle('open');
+    btn.querySelector('span:first-child').innerHTML = isOpen ? '&#9662;' : '&#9656;';
+    if (isOpen) document.getElementById('saved-comment-input-' + id).focus();
+  }
+
+  function commentKeydownSaved(e, id) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); submitCommentSaved(id); }
+  }
+
+  function submitCommentSaved(id) {
+    const input = document.getElementById('saved-comment-input-' + id);
+    const text = input.value.trim();
+    if (!text) return;
+    const allComments = getComments();
+    if (!allComments[id]) allComments[id] = [];
+    const comment = { text, date: new Date().toISOString().slice(0, 10) };
+    allComments[id].push(comment);
+    saveComments(allComments);
+    const listEl = document.getElementById('saved-comment-list-' + id);
+    const placeholder = listEl.querySelector('.no-comments');
+    if (placeholder) placeholder.remove();
+    const div = document.createElement('div');
+    div.className = 'comment-item';
+    div.innerHTML = `<div>${escHtml(text)}</div><div class="comment-date">${formatDate(comment.date)}</div>`;
+    listEl.appendChild(div);
+    const count = allComments[id].length;
+    const countEl = document.querySelector(`.comment-count-s-${id}`);
+    if (countEl) countEl.textContent = `${count} comment${count !== 1 ? 's' : ''}`;
+    input.value = '';
+    input.style.height = 'auto';
+    input.focus();
+  }
+
+  // ── Navigation ──
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.getElementById(name + '-view').classList.add('active');
+    document.getElementById('nav-' + name).classList.add('active');
+    if (name === 'feed') renderFeed();
+    if (name === 'saved') renderSaved();
+    window.scrollTo(0, 0);
+  }
+
+  // ── Character counter ──
+  const bodyEl = document.getElementById('poem-body');
+  const charNum = document.getElementById('char-num');
+  bodyEl.addEventListener('input', () => {
+    charNum.textContent = bodyEl.value.length;
+  });
+
+  // ── Form submission ──
+  document.getElementById('poem-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const title = document.getElementById('poem-title').value.trim();
+    const body  = bodyEl.value.trim();
+    if (!body) return;
+
+    const poem = {
+      id: 'p' + Date.now(),
+      title,
+      body,
+      date: new Date().toISOString().slice(0, 10),
+      likes: 0
+    };
+
+    // In a real app this would POST to your backend.
+    // For now, we add directly to the feed (simulating instant approval).
+    const poems = getPoems();
+    poems.unshift(poem);
+    savePoems(poems);
+
+    // Reset form
+    this.reset();
+    charNum.textContent = '0';
+
+    showToast('Your poem has been submitted. ✦');
+    setTimeout(() => showView('feed'), 1800);
+  });
+
+  // ── Toast ──
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── Init ──
+  renderFeed();
+</script>
+</body>
+</html>
